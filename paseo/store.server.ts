@@ -1,7 +1,9 @@
 import { spawn } from "node:child_process";
 import { chmodSync, copyFileSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
 import type { AccountQuota, Family, QuotaSnapshot } from "./shared";
 
 const STORE_PATH = join(homedir(), ".paseo", "ttz.json");
@@ -272,17 +274,74 @@ export async function handleRefreshQuota(): Promise<QuotaSnapshot> {
   return snapshot(store);
 }
 
-export function handleLogin(input: { family: Family }): QuotaSnapshot {
-  const hint =
-    input.family === "codex"
-      ? "在 Pi 里输入 /login ，选 ChatGPT Codex 订阅。完成后回到铁铁汁点导入。"
-      : "在 Pi 里输入 /login ，选 xAI Grok。完成后回到铁铁汁点导入。";
-  const script = `echo ${JSON.stringify(hint)}; exec pi`;
-  spawn("osascript", ["-e", `tell application "Terminal" to do script ${JSON.stringify(script)}`], {
-    detached: true,
-    stdio: "ignore",
-  }).unref();
-  return snapshot(readStore(), "已打开终端，登录完成后点导入");
+function openBrowser(url: string) {
+  spawn("open", [url], { detached: true, stdio: "ignore" }).unref();
+}
+
+function nextSlotId(family: Family, store: Store, auth: Record<string, unknown>): string {
+  const live = LIVE_KEY[family];
+  const prefix = family === "codex" ? "openai-codex-account-" : "xai-account-";
+  const taken = new Set([...Object.keys(auth), ...store.accounts.map((a) => a.id)]);
+  if (!taken.has(live)) return live;
+  let n = 2;
+  while (taken.has(`${prefix}${n}`)) n += 1;
+  return `${prefix}${n}`;
+}
+
+function hangingPrompt(signal?: AbortSignal): Promise<string> {
+  return new Promise((_, reject) => {
+    const fail = () => reject(new Error("Login cancelled"));
+    if (signal?.aborted) fail();
+    signal?.addEventListener("abort", fail, { once: true });
+  });
+}
+
+async function runOAuth(family: Family): Promise<Record<string, unknown>> {
+  const signal = AbortSignal.timeout(5 * 60 * 1000);
+  const interaction = {
+    signal,
+    async prompt(prompt: { type: string; options?: Array<{ id: string }> }) {
+      if (prompt.type === "select") return prompt.options?.[0]?.id ?? "";
+      if (prompt.type === "manual_code") return hangingPrompt(signal);
+      throw new Error(`不支持的登录步骤: ${prompt.type}`);
+    },
+    notify(event: { type: string; url?: string; verificationUri?: string }) {
+      if (event.type === "auth_url" && event.url) openBrowser(event.url);
+      if (event.type === "device_code" && event.verificationUri) openBrowser(event.verificationUri);
+    },
+  };
+  const piAiRoot = dirname(createRequire(import.meta.url).resolve("@earendil-works/pi-ai/package.json"));
+  const file = family === "codex" ? "openai-codex.js" : "xai.js";
+  const mod = (await import(
+    pathToFileURL(join(piAiRoot, "dist/auth/oauth", file)).href
+  )) as {
+    openaiCodexOAuth?: { login: (i: unknown) => Promise<Record<string, unknown>> };
+    xaiOAuth?: { login: (i: unknown) => Promise<Record<string, unknown>> };
+  };
+  const oauth = family === "codex" ? mod.openaiCodexOAuth : mod.xaiOAuth;
+  if (!oauth) throw new Error("找不到 OAuth 实现");
+  return oauth.login(interaction);
+}
+
+export async function handleLogin(input: { family: Family }): Promise<QuotaSnapshot> {
+  const cred = await runOAuth(input.family);
+  const store = readStore();
+  const auth = JSON.parse(readFileSync(AUTH_PATH, "utf8")) as Record<string, unknown>;
+  const id = nextSlotId(input.family, store, auth);
+  copyFileSync(AUTH_PATH, `${AUTH_PATH}.bak-ttz`);
+  chmodSync(`${AUTH_PATH}.bak-ttz`, 0o600);
+  auth[id] = cred;
+  writeJson(AUTH_PATH, auth);
+  store.accounts = store.accounts.filter((account) => account.id !== id);
+  store.accounts.push({
+    id,
+    family: input.family,
+    label: DEFAULT_NAMES[id] ?? id,
+    cred,
+  });
+  store.accounts.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+  writeStore(store);
+  return snapshot(store, `已登录并保存 ${DEFAULT_NAMES[id] ?? id}，点刷新看额度，选用后才会重启`);
 }
 
 export function handleSwitchAccount(input: { id: string }): QuotaSnapshot {

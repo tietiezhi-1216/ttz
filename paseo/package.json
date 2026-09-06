@@ -5,6 +5,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@earendil-works/pi-ai": "^0.84.4"
+  },
   "devDependencies": {
     "@getpaseo/plugin": "0.7.2",
     "@tanstack/react-query": "^5.90.11",

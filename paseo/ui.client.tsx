@@ -235,7 +235,7 @@ export function SettingsSurface({ theme, layout }: PluginSurfaceProps) {
           />
         </View>
         <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12, lineHeight: 18 }}>
-          导入会把 auth.json 里的 Codex/Grok 存进铁铁汁。选用会写回 Pi 正在用的槽并重启 daemon，当前对话会断。
+          登录会直接打开浏览器。完成授权后账号会出现在下面。选用会写回 Pi 并重启 daemon，当前对话会断。
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           <Btn
