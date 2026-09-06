@@ -1,19 +1,19 @@
 import type { PluginContext } from "@getpaseo/plugin";
 import { contributePills, SettingsSurface } from "./ui.client";
 import {
-  handleGetPrefs,
   handleGetQuota,
+  handleImportAuth,
+  handleLogin,
   handleRefreshQuota,
-  handleSetPrefs,
   handleSwitchAccount,
 } from "./store.server";
-import { getPrefs, getQuota, refreshQuota, setPrefs, switchAccount } from "./shared";
+import { getQuota, importAuth, loginAccount, refreshQuota, switchAccount } from "./shared";
 
 export default function contribute(plugin: PluginContext) {
   plugin.handle(getQuota, handleGetQuota);
   plugin.handle(refreshQuota, handleRefreshQuota);
-  plugin.handle(getPrefs, handleGetPrefs);
-  plugin.handle(setPrefs, handleSetPrefs);
+  plugin.handle(importAuth, handleImportAuth);
+  plugin.handle(loginAccount, handleLogin);
   plugin.handle(switchAccount, handleSwitchAccount);
 
   plugin.addSurface("ttz-settings", SettingsSurface);

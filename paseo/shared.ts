@@ -13,6 +13,7 @@ export const AccountQuotaSchema = z.object({
   resetAt: z.number().nullable(),
   serviceable: z.boolean().nullable(),
   error: z.string().nullable(),
+  authType: z.string().nullable(),
 });
 export type AccountQuota = z.infer<typeof AccountQuotaSchema>;
 
@@ -27,14 +28,9 @@ export const QuotaSnapshotSchema = z.object({
   accounts: z.array(AccountQuotaSchema),
   preferredId: z.string().nullable(),
   fetchedAt: z.number().nullable(),
+  notice: z.string().nullable(),
 });
 export type QuotaSnapshot = z.infer<typeof QuotaSnapshotSchema>;
-
-export const PrefsSchema = z.object({
-  showCodex: z.boolean(),
-  showGrok: z.boolean(),
-});
-export type Prefs = z.infer<typeof PrefsSchema>;
 
 export const getQuota = defineRpc({
   name: "ttz.get",
@@ -48,16 +44,16 @@ export const refreshQuota = defineRpc({
   output: QuotaSnapshotSchema,
 });
 
-export const getPrefs = defineRpc({
-  name: "ttz.prefs.get",
+export const importAuth = defineRpc({
+  name: "ttz.import",
   input: z.object({}),
-  output: PrefsSchema,
+  output: QuotaSnapshotSchema,
 });
 
-export const setPrefs = defineRpc({
-  name: "ttz.prefs.set",
-  input: PrefsSchema.partial(),
-  output: PrefsSchema,
+export const loginAccount = defineRpc({
+  name: "ttz.login",
+  input: z.object({ family: FamilySchema }),
+  output: QuotaSnapshotSchema,
 });
 
 export const switchAccount = defineRpc({

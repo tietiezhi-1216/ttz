@@ -1,7 +1,7 @@
 {
   "name": "ttz",
-  "version": "2.0.0",
-  "description": "铁铁汁：Paseo 账号额度 + Pi /ttz 切号（不往对话里塞命令）",
+  "version": "2.1.0",
+  "description": "铁铁汁：Paseo 面板导入/登录/切换 Pi 账号（写回 auth.json 并重启 daemon）",
   "type": "module",
   "license": "MIT",
   "author": "tietiezhi-1216",
@@ -10,10 +10,6 @@
     "type": "git",
     "url": "git+https://github.com/tietiezhi-1216/ttz.git"
   },
-  "keywords": ["pi-package", "pi-extension", "paseo-plugin", "ttz"],
-  "files": ["pi/index.ts", "paseo", "README.md", "AGENTS.md", "LICENSE"],
-  "engines": { "node": ">=22" },
-  "pi": {
-    "extensions": ["./pi/index.ts"]
-  }
+  "keywords": ["paseo-plugin", "ttz"],
+  "files": ["paseo", "README.md", "AGENTS.md", "LICENSE"]
 }

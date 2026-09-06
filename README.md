@@ -1,22 +1,13 @@
 # 铁铁汁 / ttz
 
-自己维护的一套：Paseo 侧栏看额度、记要哪个号；Pi 扩展只在**当前会话**执行 `/ttz switch`。  
-**不会**往每个窗口自动发命令。
+只有 **Paseo 插件**。没有 Pi 扩展，不会往对话里发 `/ttz`。
 
-| 部分 | 路径 | 作用 |
-|---|---|---|
-| Paseo 插件 | `paseo/` | 侧栏「铁铁汁」，账号与额度存在 `~/.paseo/ttz.json` |
-| Pi 扩展 | `pi/` | `/ttz status` · `/ttz switch hotmail` |
+侧栏「铁铁汁」：
 
-OAuth 仍在 `~/.pi/agent/auth.json`（Pi 登录槽）。插件只存名单、短名、额度和「记下的号」，不存 token。
+- **导入 auth.json**：把本机 `~/.pi/agent/auth.json` 里的 Codex / Grok 存进 `~/.paseo/ttz.json`
+- **登录 Codex / 登录 Grok**：打开终端跑 `pi`，你自己 `/login`，完了再点导入
+- **选用并重启**：把该号写回 Pi 正在用的槽（`openai-codex` 或 `xai`），然后重启 Paseo daemon
 
-## 安装
+有什么号就显示什么，没有 Codex/Grok 总开关。
 
-```bash
-pi install git:github.com/tietiezhi-1216/ttz
-paseo plugin install git:github.com/tietiezhi-1216/ttz:paseo
-```
-
-Pi `settings.json` 的 `extensions` 不要再指向 `pi-multi-account`。
-
-当前对话立刻换号：在该 Pi 输入框发 `/ttz switch hotmail`。侧栏「选用」只记偏好，新开的 Pi 会读。
+切号会断开当前所有对话。Token 只写在本机 0600 文件里，不进 git。

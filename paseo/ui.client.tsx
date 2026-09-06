@@ -8,13 +8,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import {
-  getPrefs,
   getQuota,
+  importAuth,
+  loginAccount,
   refreshQuota,
-  setPrefs,
   switchAccount,
   type Family,
-  type Prefs,
 } from "./shared";
 
 function usageColor(percent: number | null, fallback: string) {
@@ -45,22 +44,10 @@ function useQuota() {
   });
 }
 
-function usePrefs() {
-  const rpc = useRpc(getPrefs);
-  return useQuery({
-    queryKey: ["ttz-prefs"],
-    queryFn: () => rpc({}),
-    refetchInterval: 5_000,
-    staleTime: 2_000,
-    retry: 1,
-  });
-}
-
 function FamilyPill({ family, theme }: PluginComposerPillProps & { family: Family }) {
   const quota = useQuota();
-  const prefs = usePrefs();
-  const enabled = family === "codex" ? prefs.data?.showCodex : prefs.data?.showGrok;
-  if (enabled === false) return null;
+  const count = quota.data?.families[family]?.accountCount ?? 0;
+  if (count === 0) return null;
   const percent = quota.data?.families[family]?.usedPercent ?? null;
   const name = family === "codex" ? "Codex" : "Grok";
   return (
@@ -87,7 +74,7 @@ function PreferredPill({ theme }: PluginComposerPillProps) {
       numberOfLines={1}
       style={{ color: theme.colors.foregroundMuted, flexShrink: 1, fontSize: 12, fontWeight: "600" }}
     >
-      {row ? `记下 ${row.label}` : "记下 —"}
+      {row ? `当前 ${row.label}` : "铁铁汁"}
     </Text>
   );
 }
@@ -128,7 +115,7 @@ export function contributePills(client: PluginClientContext) {
       }),
       client.addComposerPill({
         id: "ttz-preferred",
-        title: "铁铁汁记下的号",
+        title: "铁铁汁",
         workspaceId,
         agentId,
         Component: PreferredPill,
@@ -170,77 +157,112 @@ export function contributePills(client: PluginClientContext) {
   };
 }
 
+function Btn({
+  label,
+  onPress,
+  theme,
+  accent,
+  pending,
+}: {
+  label: string;
+  onPress: () => void;
+  theme: PluginSurfaceProps["theme"];
+  accent?: boolean;
+  pending?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={{
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        backgroundColor: accent ? theme.colors.accent : theme.colors.surface2,
+        opacity: pending ? 0.6 : 1,
+      }}
+    >
+      <Text
+        style={{
+          color: accent ? theme.colors.accentForeground : theme.colors.foreground,
+          fontSize: 12,
+          fontWeight: "600",
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 export function SettingsSurface({ theme, layout }: PluginSurfaceProps) {
   const quota = useQuota();
-  const prefs = usePrefs();
   const qc = useQueryClient();
-  const set = useRpc(setPrefs);
+  const setCache = (data: typeof quota.data) => qc.setQueryData(["ttz-quota"], data);
   const refresh = useRpc(refreshQuota);
+  const importing = useRpc(importAuth);
+  const logging = useRpc(loginAccount);
   const switching = useRpc(switchAccount);
-  const mutation = useMutation({
-    mutationFn: (patch: Partial<Prefs>) => set(patch),
-    onSuccess: (data) => qc.setQueryData(["ttz-prefs"], data),
-  });
   const refreshing = useMutation({
     mutationFn: () => refresh({}),
-    onSuccess: (data) => qc.setQueryData(["ttz-quota"], data),
+    onSuccess: setCache,
+  });
+  const importMut = useMutation({
+    mutationFn: () => importing({}),
+    onSuccess: setCache,
+  });
+  const loginMut = useMutation({
+    mutationFn: (family: Family) => logging({ family }),
+    onSuccess: setCache,
   });
   const switchMut = useMutation({
     mutationFn: (id: string) => switching({ id }),
-    onSuccess: (data) => qc.setQueryData(["ttz-quota"], data),
+    onSuccess: setCache,
   });
   const pad = layout.compact ? 12 : 16;
   const accounts = quota.data?.accounts ?? [];
+  const notice = quota.data?.notice;
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.surface0 }}>
       <ScrollView contentContainerStyle={{ padding: pad, gap: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <Text style={{ color: theme.colors.foreground, fontSize: 18, fontWeight: "700" }}>铁铁汁</Text>
-          <Pressable
-            accessibilityRole="button"
+          <Btn
+            label={refreshing.isPending ? "刷新中" : "刷新额度"}
             onPress={() => refreshing.mutate()}
-            style={{
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              backgroundColor: theme.colors.accent,
-              opacity: refreshing.isPending ? 0.6 : 1,
-            }}
-          >
-            <Text style={{ color: theme.colors.accentForeground, fontSize: 12, fontWeight: "600" }}>
-              {refreshing.isPending ? "刷新中" : "刷新"}
-            </Text>
-          </Pressable>
+            theme={theme}
+            accent
+            pending={refreshing.isPending}
+          />
         </View>
         <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12, lineHeight: 18 }}>
-          「选用」只记在插件里，不会往任何对话发送 /ttz。当前会话要立刻换号，请在输入框自己打 /ttz switch hotmail。
+          导入会把 auth.json 里的 Codex/Grok 存进铁铁汁。选用会写回 Pi 正在用的槽并重启 daemon，当前对话会断。
         </Text>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          {(
-            [
-              ["Codex", "showCodex", prefs.data?.showCodex !== false],
-              ["Grok", "showGrok", prefs.data?.showGrok !== false],
-            ] as const
-          ).map(([label, key, on]) => (
-            <Pressable
-              key={key}
-              onPress={() => mutation.mutate({ [key]: !on })}
-              style={{
-                paddingVertical: 6,
-                paddingHorizontal: 10,
-                borderWidth: 1,
-                borderColor: on ? theme.colors.accent : theme.colors.border,
-                backgroundColor: on ? theme.colors.surface1 : "transparent",
-              }}
-            >
-              <Text style={{ color: theme.colors.foreground, fontSize: 12 }}>
-                {label} {on ? "开" : "关"}
-              </Text>
-            </Pressable>
-          ))}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          <Btn
+            label={importMut.isPending ? "导入中" : "导入 auth.json"}
+            onPress={() => importMut.mutate()}
+            theme={theme}
+            pending={importMut.isPending}
+          />
+          <Btn
+            label="登录 Codex"
+            onPress={() => loginMut.mutate("codex")}
+            theme={theme}
+            pending={loginMut.isPending}
+          />
+          <Btn
+            label="登录 Grok"
+            onPress={() => loginMut.mutate("xai")}
+            theme={theme}
+            pending={loginMut.isPending}
+          />
         </View>
-        {switchMut.isSuccess ? (
-          <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>
-            已记下 {quota.data?.accounts.find((a) => a.id === quota.data?.preferredId)?.label}。新开的 Pi 会用这个号。
+        {notice ? (
+          <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{notice}</Text>
+        ) : null}
+        {accounts.length === 0 ? (
+          <Text style={{ color: theme.colors.foregroundMuted, fontSize: 13 }}>
+            还没有账号。先登录或导入 auth.json。
           </Text>
         ) : null}
         {(["codex", "xai"] as const).map((family) => {
@@ -256,10 +278,7 @@ export function SettingsSurface({ theme, layout }: PluginSurfaceProps) {
                 const color = usageColor(pct, theme.colors.foregroundMuted);
                 const active = quota.data?.preferredId === a.id;
                 return (
-                  <View
-                    key={a.id}
-                    style={{ gap: 6, padding: 10, backgroundColor: theme.colors.surface1 }}
-                  >
+                  <View key={a.id} style={{ gap: 6, padding: 10, backgroundColor: theme.colors.surface1 }}>
                     <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                       <Text style={{ color: theme.colors.foreground, fontSize: 14, fontWeight: "700" }}>
                         {a.label}
@@ -270,6 +289,7 @@ export function SettingsSurface({ theme, layout }: PluginSurfaceProps) {
                     </View>
                     <Text style={{ color: theme.colors.foregroundMuted, fontSize: 11 }}>
                       {a.id}
+                      {a.authType ? ` · ${a.authType}` : ""}
                       {a.plan ? ` · ${a.plan}` : ""}
                       {a.serviceable === false ? " · 不可用" : ""}
                       {" · "}
@@ -295,6 +315,7 @@ export function SettingsSurface({ theme, layout }: PluginSurfaceProps) {
                         paddingVertical: 6,
                         paddingHorizontal: 10,
                         backgroundColor: active ? theme.colors.accent : theme.colors.surface2,
+                        opacity: switchMut.isPending ? 0.6 : 1,
                       }}
                     >
                       <Text
@@ -304,7 +325,7 @@ export function SettingsSurface({ theme, layout }: PluginSurfaceProps) {
                           fontWeight: "600",
                         }}
                       >
-                        {active ? "已选" : "选用"}
+                        {active ? "当前" : "选用并重启"}
                       </Text>
                     </Pressable>
                   </View>
