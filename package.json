@@ -1,7 +1,8 @@
 {
   "name": "ttz",
-  "version": "2.1.0",
-  "description": "铁铁汁：Paseo 面板导入/登录/切换 Pi 账号（写回 auth.json 并重启 daemon）",
+  "version": "2.2.0",
+  "private": true,
+  "description": "铁铁汁：Paseo 多平台账号、设备码登录与额度面板",
   "type": "module",
   "license": "MIT",
   "author": "tietiezhi-1216",

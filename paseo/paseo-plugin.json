@@ -1,3 +1,7 @@
 {
-  "id": "ttz"
+  "id": "ttz",
+  "build": [
+    ["npm", "ci", "--ignore-scripts"],
+    ["npm", "run", "typecheck"]
+  ]
 }

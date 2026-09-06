@@ -1,7 +1,7 @@
 import { defineRpc } from "@getpaseo/plugin/server";
 import { z } from "zod";
 
-export const FamilySchema = z.enum(["codex", "xai"]);
+export const FamilySchema = z.enum(["codex", "xai", "go"]);
 export type Family = z.infer<typeof FamilySchema>;
 
 export const AccountQuotaSchema = z.object({
@@ -14,6 +14,8 @@ export const AccountQuotaSchema = z.object({
   serviceable: z.boolean().nullable(),
   error: z.string().nullable(),
   authType: z.string().nullable(),
+  expiresAt: z.number().nullable(),
+  windows: z.array(z.object({ label: z.string(), usedPercent: z.number(), resetAt: z.number() })).default([]),
 });
 export type AccountQuota = z.infer<typeof AccountQuotaSchema>;
 
@@ -26,7 +28,11 @@ export const QuotaSnapshotSchema = z.object({
     }),
   ),
   accounts: z.array(AccountQuotaSchema),
-  preferredId: z.string().nullable(),
+  preferred: z.object({
+    codex: z.string().nullable(),
+    xai: z.string().nullable(),
+    go: z.string().nullable(),
+  }),
   fetchedAt: z.number().nullable(),
   notice: z.string().nullable(),
 });
@@ -40,7 +46,7 @@ export const getQuota = defineRpc({
 
 export const refreshQuota = defineRpc({
   name: "ttz.refresh",
-  input: z.object({}),
+  input: z.object({ mode: z.enum(["manual", "auto"]).optional() }),
   output: QuotaSnapshotSchema,
 });
 
@@ -53,6 +59,12 @@ export const importAuth = defineRpc({
 export const loginAccount = defineRpc({
   name: "ttz.login",
   input: z.object({ family: FamilySchema }),
+  output: QuotaSnapshotSchema,
+});
+
+export const addGoKey = defineRpc({
+  name: "ttz.go.add-key",
+  input: z.object({ key: z.string().trim().min(1).max(4096), label: z.string().trim().max(60).optional() }),
   output: QuotaSnapshotSchema,
 });
 

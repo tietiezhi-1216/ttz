@@ -4,4 +4,10 @@ node_modules/
 .env
 .env.*
 *.bak
+*.bak-*
+.secrets/
+*.pem
+*.key
 auth.json
+ttz.json
+ttz-import-*.json
