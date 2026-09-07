@@ -15,6 +15,9 @@ test('release versions are consistent', () => {
 test('Git installation explicitly prepares dependencies and checks types', () => {
   const manifest = read('../paseo-plugin.json');
   assert.equal(manifest.id, 'ttz');
-  assert.deepEqual(manifest.build, [['npm', 'ci', '--ignore-scripts'], ['npm', 'run', 'typecheck']]);
+  assert.deepEqual(manifest.build, [
+    ['npm', '--cache', '/tmp/ttz-npm-cache', 'ci', '--ignore-scripts'],
+    ['npm', '--cache', '/tmp/ttz-npm-cache', 'run', 'typecheck'],
+  ]);
   assert.match(read('../package.json').dependencies['@earendil-works/pi-ai'], /^\d+\.\d+\.\d+$/);
 });

@@ -1,7 +1,7 @@
 {
   "id": "ttz",
   "build": [
-    ["npm", "ci", "--ignore-scripts"],
-    ["npm", "run", "typecheck"]
+    ["npm", "--cache", "/tmp/ttz-npm-cache", "ci", "--ignore-scripts"],
+    ["npm", "--cache", "/tmp/ttz-npm-cache", "run", "typecheck"]
   ]
 }
