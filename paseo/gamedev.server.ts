@@ -220,13 +220,15 @@ export async function handleGamedevList(input: {
 }): Promise<{ nodes: GameNode[]; hosts: HostLoad[]; coordinator: { status: string; name: string } | null; mode: "local" | "global" }> {
   const { workers, coordinator } = topology();
   const query = input.query?.trim().toLowerCase() ?? "";
-  const [branchMap, titles] = await Promise.all([
-    allGameBranches().catch(() => new Map<string, string[]>()),
-    Promise.resolve().then(() => rulesIndex()).catch(() => new Map()),
-  ]);
+  const localIdx = resolveLocalWorker(localIps(), workers);
+  // Local (worker) panels must never block on GitHub: their job is find + jump.
+  // Pending-branch counts stay exclusive to the aggregator (global) view.
+  const branchMap = localIdx >= 0
+    ? new Map<string, string[]>()
+    : await allGameBranches().catch(() => new Map<string, string[]>());
+  const titles = await Promise.resolve().then(() => rulesIndex()).catch(() => new Map());
   const pending = new Map<string, number>();
   for (const [gameId, refs] of branchMap) pending.set(gameId, refs.length);
-  const localIdx = resolveLocalWorker(localIps(), workers);
   if (localIdx >= 0) {
     const entry = await listWorker(workers[localIdx], true, query, pending, titles);
     return { nodes: entry.nodes, hosts: [entry.load], coordinator: null, mode: "local" };
@@ -331,7 +333,7 @@ async function allGameBranches(): Promise<Map<string, string[]>> {
         { stdio: ["ignore", "pipe", "pipe"] },
       );
       let out = "";
-      const timer = setTimeout(() => { child.kill("SIGKILL"); resolve([]); }, 20_000);
+      const timer = setTimeout(() => { child.kill("SIGKILL"); resolve([]); }, 12_000);
       child.stdout.on("data", (chunk) => { out += chunk; });
       child.on("error", () => { clearTimeout(timer); resolve([]); });
       child.on("close", (code) => {
