@@ -1,15 +1,18 @@
 {
   "name": "ttz",
   "private": true,
-  "version": "2.2.0",
+  "version": "2.3.0",
   "type": "module",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@earendil-works/pi-ai": "0.84.4"
+    "@earendil-works/pi-ai": "0.84.4",
+    "grok-bot-cli": "^0.2.2"
   },
   "devDependencies": {
     "@getpaseo/plugin": "0.7.2",

@@ -17,7 +17,7 @@ import {
 } from "./shared";
 import { LoginPanel } from "./login.client";
 import { GoKeyPanel } from "./go-key.client";
-import { PillPanelController } from "./pill-panel.client";
+import { createPillPanelController } from "./pill-panel.client";
 import { UpdatePanel } from "./update.client";
 import { VERSION } from "./version";
 
@@ -179,7 +179,7 @@ function AccountCard({ family, rows, live, theme, pending, onSelect }: {
   );
 }
 
-const pillPanels = new Map<string, PillPanelController>();
+const pillPanels = new Map<string, ReturnType<typeof createPillPanelController>>();
 
 function CombinedPill({ theme, agentId }: PluginComposerPillProps) {
   const { height } = useWindowDimensions();
@@ -199,7 +199,7 @@ function CombinedPill({ theme, agentId }: PluginComposerPillProps) {
     onSuccess: (data) => qc.setQueryData(["ttz-quota"], data),
   });
   useEffect(() => {
-    const panel = pillPanels.get(agentId) ?? new PillPanelController();
+    const panel = pillPanels.get(agentId) ?? createPillPanelController();
     pillPanels.set(agentId, panel);
     const unregister = panel.register((visible) => {
       if (visible) { setBrowsed(null); setPlatformMenu(false); }

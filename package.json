@@ -1,6 +1,6 @@
 {
   "name": "ttz",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "description": "铁铁汁：Paseo 多平台账号、设备码登录与额度面板",
   "type": "module",
