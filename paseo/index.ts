@@ -19,9 +19,6 @@ import { handleCheckUpdates } from "./update.server";
 import { grokbotList, grokbotSend, grokbotThread, grokbotCreate, grokbotUpdate, grokbotDelete, grokbotMarkRead, grokbotProfiles, grokbotSaveProfile, grokbotSetProfile, grokbotDeleteProfile } from "./grokbot.shared";
 import { handleGrokbotList, handleGrokbotSend, handleGrokbotThread, handleGrokbotCreate, handleGrokbotUpdate, handleGrokbotDelete, handleGrokbotMarkRead, handleGrokbotProfiles, handleGrokbotSaveProfile, handleGrokbotSetProfile, handleGrokbotDeleteProfile } from "./grokbot.server";
 import { GrokBotPanel } from "./grokbot.client";
-import { gamedevArchive, gamedevDetail, gamedevDispatch, gamedevList, gamedevThread } from "./gamedev.shared";
-import { handleGamedevArchive, handleGamedevDetail, handleGamedevDispatch, handleGamedevList, handleGamedevThread } from "./gamedev.server";
-import { GameDevSurface } from "./gamedev.client";
 
 export default function contribute(plugin: PluginContext) {
   plugin.handle(checkUpdates, handleCheckUpdates);
@@ -36,11 +33,6 @@ export default function contribute(plugin: PluginContext) {
   plugin.handle(grokbotSaveProfile, handleGrokbotSaveProfile);
   plugin.handle(grokbotSetProfile, handleGrokbotSetProfile);
   plugin.handle(grokbotDeleteProfile, handleGrokbotDeleteProfile);
-  plugin.handle(gamedevList, ({ query }) => handleGamedevList({ query }));
-  plugin.handle(gamedevDetail, ({ gameId, host, shortId }) => handleGamedevDetail({ gameId, host, shortId }));
-  plugin.handle(gamedevThread, ({ shortId, host, tail }) => handleGamedevThread({ shortId, host, tail }));
-  plugin.handle(gamedevArchive, ({ shortId, host }) => handleGamedevArchive({ shortId, host }));
-  plugin.handle(gamedevDispatch, ({ text }) => handleGamedevDispatch({ text }));
   plugin.handle(addGoKey, handleAddGoKey);
   plugin.handle(startLogin, ({ family }) => beginLogin(family, saveLoginCredentials));
   plugin.handle(loginStatus, ({ id }) => getLogin(id));
@@ -75,13 +67,6 @@ export default function contribute(plugin: PluginContext) {
     onSelect({ openPanel }) {
       openPanel("ttz-grokbot");
     },
-  });
-  plugin.addSurface("ttz-gamedev", GameDevSurface);
-  plugin.addSidebarItem({
-    id: "ttz-gamedev",
-    title: "游戏开发",
-    icon: "Gamepad2",
-    surface: "ttz-gamedev",
   });
   plugin.addClientSide(contributePills);
   return () => { disposeLogin(); };
